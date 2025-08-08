@@ -1,0 +1,73 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=mydb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+  apiprice_agent:
+    build:
+      context: .
+      dockerfile: infra/docker/agent.Dockerfile
+    volumes:
+      - .:/app
+    command: >
+      watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- \
+      celery -A proj.celery_app worker -Q price_queue -n price_worker@%h --loglevel=info
+    depends_on:
+      - redis
+      - db
+  3emaindicator_agent:
+    build:
+      context: .
+      dockerfile: infra/docker/agent.Dockerfile
+    volumes:
+      - .:/app
+    command: >
+      watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- \
+      celery -A proj.celery_app worker -Q indicator_queue -n indicator_worker@%h --loglevel=info
+    depends_on:
+      - redis
+      - db
+  bangstate_agent:
+    build:
+      context: .
+      dockerfile: infra/docker/agent.Dockerfile
+    volumes:
+      - .:/app
+    command: >
+      watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- \
+      celery -A proj.celery_app worker -Q bang_queue -n bang_worker@%h --loglevel=info
+    depends_on:
+      - redis
+      - db
+  trigger:
+    build:
+      context: .
+      dockerfile: infra/docker/agent.Dockerfile
+    volumes:
+      - .:/app
+    command: python trigger/trigger.py
+    depends_on:
+      - redis
+  frontend_gateway:
+    build:
+      context: .
+      dockerfile: infra/docker/agent.Dockerfile
+    volumes:
+      - .:/app
+    command: uvicorn frontend_gateway.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - db
+volumes:
+  postgres_data:
