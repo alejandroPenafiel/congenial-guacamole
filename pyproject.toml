@@ -1,0 +1,19 @@
+[project]
+name = "trading-engine"
+version = "0.1.0"
+description = "Agent-based trading engine skeleton"
+authors = [{name = "Example", email = "example@example.com"}]
+requires-python = ">=3.11"
+dependencies = [
+    "celery",
+    "redis",
+    "fastapi",
+    "structlog",
+    "watchdog",
+    "broadcaster",
+    "uvicorn",
+    "psycopg2-binary",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
